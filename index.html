@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        button {margin: 5px; padding: 10px 20px; background-color: #007bff; color: #fff; border: none; border-radius: 5px; cursor: pointer;}
+        button:hover {background-color: #0056b3;}
+        div { margin-top: 20px;}
+        #canvas {
+            background-color: black;
+            width: 100%;
+            height: 200px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h3>Using the Media Recorder API to Record Audio in the Web Browser</h3>
+    <div>
+        <button id="start">Start Recording</button>
+        <button id="stop">Stop Recording</button>
+        <button id="play">Play Recorded Audio</button>
+    </div>
+    <br>
+    <div id="output"></div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const startButton = document.getElementById('start');
+        const stopButton = document.getElementById('stop');
+        const playButton = document.getElementById('play');
+        let output = document.getElementById('output');
+        let audioRecorder;
+        let audioChunks = [];
+        let audioContext;
+        let analyser;
+        let dataArray;
+        let canvas = document.getElementById('canvas');
+        let canvasContext = canvas.getContext('2d');
+        let sourceNode;
+        let audioElement;
+
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+                let source = audioContext.createMediaStreamSource(stream);
+                source.connect(analyser);
+                dataArray = new Uint8Array(analyser.fftSize);
+
+                audioRecorder = new MediaRecorder(stream);
+
+                audioRecorder.addEventListener('dataavailable', e => {
+                    audioChunks.push(e.data);
+                });
+
+                startButton.addEventListener('click', () => {
+                    audioChunks = [];
+                    audioRecorder.start();
+                    output.innerHTML = 'Recording started! Speak now.';
+                    canvas.style.display = 'block';
+                    draw();
+                });
+
+                stopButton.addEventListener('click', () => {
+                    audioRecorder.stop();
+                    output.innerHTML = 'Recording stopped! Click on the play button to play the recorded audio.';
+                    canvas.style.display = 'none';
+                });
+
+                playButton.addEventListener('click', () => {
+                    const blobObj = new Blob(audioChunks, { type: 'audio/webm' });
+                    const audioUrl = URL.createObjectURL(blobObj);
+                    audioElement = new Audio(audioUrl);
+                    sourceNode = audioContext.createMediaElementSource(audioElement);
+                    sourceNode.connect(analyser);
+                    sourceNode.connect(audioContext.destination);
+
+                    audioElement.play();
+                    output.innerHTML = 'Playing the recorded audio!';
+                    canvas.style.display = 'block';
+                    draw();
+                });
+
+                function draw() {
+                    if (canvas.style.display === 'none') return;
+                    requestAnimationFrame(draw);
+                    analyser.getByteTimeDomainData(dataArray);
+                    canvasContext.fillStyle = 'black';
+                    canvasContext.fillRect(0, 0, canvas.width, canvas.height);
+
+                    canvasContext.lineWidth = 2;
+                    canvasContext.strokeStyle = 'white';
+                    canvasContext.beginPath();
+                    let sliceWidth = canvas.width / analyser.fftSize;
+                    let x = 0;
+                    for (let i = 0; i < analyser.fftSize; i++) {
+                        let v = dataArray[i] / 128.0;
+                        let y = v * canvas.height / 2;
+                        if (i === 0) {
+                            canvasContext.moveTo(x, y);
+                        } else {
+                            canvasContext.lineTo(x, y);
+                        }
+                        x += sliceWidth;
+                    }
+                    canvasContext.lineTo(canvas.width, canvas.height / 2);
+                    canvasContext.stroke();
+                }
+            }).catch(err => {
+                console.log('Error: ' + err);
+            });
+    </script>
+</body>
+</html>

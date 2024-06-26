@@ -1,0 +1,16 @@
+{
+  "name": "noise_cancellation_electron_pyhton",
+  "version": "1.0.0",
+  "productName": "noise_cancellation",
+  "description": "Noise cancellation application",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "Vishal",
+  "license": "MIT",
+  "dependencies": {
+    "electron": "^31.0.2",
+    "node-record-lpcm16": "^1.0.1"
+  }
+}
