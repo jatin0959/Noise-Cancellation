@@ -7,7 +7,7 @@
   "scripts": {
     "start": "electron ."
   },
-  "author": "Vishal",
+  "author": "Opam Technologies",
   "license": "MIT",
   "dependencies": {
     "electron": "^31.0.2",
